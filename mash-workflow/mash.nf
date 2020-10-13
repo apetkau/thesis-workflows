@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-nextflow.preview.dsl = 2
+nextflow.enable.dsl = 2
  
 params.input = "$baseDir/data/*_{1,2}.fastq.gz"
 params.threads = 4
@@ -9,7 +9,7 @@ params.hashes = 1000
 
 process mash_index {
     input:
-        tuple name, file(pair)
+        tuple val(name), file(pair)
  
     output:
         path '*.msh', emit: sketches

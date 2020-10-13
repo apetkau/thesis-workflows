@@ -22,8 +22,16 @@ process mash_index {
     mash sketch -r -p ${params.threads} -s ${params.hashes} -k ${params.kmer} -o ${name}.msh -I ${name} ${pair[0]} ${pair[1]}
     """
 }
- 
-/*
- * print the channel content
- */
-sketches.subscribe { println it }
+
+process sketch_paste {
+
+    input:
+    path sketch_list from sketches.collect()
+
+    output:
+    path 'sketches.msh'
+
+    """
+    mash paste sketches.msh $sketch_list
+    """ 
+}

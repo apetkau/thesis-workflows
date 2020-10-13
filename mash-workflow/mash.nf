@@ -6,13 +6,12 @@ params.kmer = 31
 params.hashes = 1000
 
 infiles = channel.fromFilePairs(params.input)
- 
+
 /*
  * Index a fastq file with Mash
  */
 process mash_index {
-    conda 'mash'
- 
+
     input:
     tuple name, file(pair) from infiles
  

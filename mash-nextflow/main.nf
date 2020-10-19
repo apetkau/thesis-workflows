@@ -5,6 +5,7 @@ nextflow.enable.dsl = 2
 params.input = "$baseDir/data/*_{1,2}.fastq.gz"
 params.threads = 4
 params.kmer = 31
+params.mindepth = 5
 params.hashes = 1000
 
 process mash_index {
@@ -16,7 +17,7 @@ process mash_index {
  
     script:
         """
-        mash sketch -r -p ${params.threads} -s ${params.hashes} -k ${params.kmer} -o ${name}.msh -I ${name} ${pair[0]} ${pair[1]}
+        mash sketch -r -p ${params.threads} -s ${params.hashes} -k ${params.kmer} -m ${params.mindepth} -o ${name}.msh -I ${name} ${pair[0]} ${pair[1]}
         """
 }
 

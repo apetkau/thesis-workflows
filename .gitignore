@@ -3,3 +3,4 @@ work
 data
 *.swp
 *.html
+.ipynb_checkpoints

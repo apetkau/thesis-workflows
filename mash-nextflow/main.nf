@@ -3,12 +3,44 @@
 nextflow.enable.dsl = 2
  
 params.input = "$baseDir/data/*_{1,2}.fastq.gz"
+params.doassembly = false
 params.threads = 4
 params.kmer = 31
 params.mindepth = 5
 params.hashes = 1000
 
-process mash_index {
+process assemble_reads {
+    publishDir 'assemblies'
+
+    input:
+        tuple val(name), file(pair)
+ 
+    output:
+        path '*.fasta', emit: assemblies
+
+    script:
+        """
+        skesa --cores ${params.threads} --reads '${pair[0]},${pair[1]}' --contigs_out '${name}.fasta'
+        """
+}
+
+process mash_index_contigs {
+    input:
+        path contigs
+ 
+    output:
+        path '*.msh', emit: sketches
+ 
+    script:
+        file_tokens = contigs.name =~ /^(.*)\./
+        name = file_tokens[0][1]
+
+        """
+        mash sketch -p ${params.threads} -s ${params.hashes} -k ${params.kmer} -o ${name}.msh -I ${name} ${contigs}
+        """
+}
+
+process mash_index_reads {
     input:
         tuple val(name), file(pair)
  
@@ -22,6 +54,8 @@ process mash_index {
 }
 
 process sketch_paste {
+    publishDir 'sketches'
+
     input:
         path sketch_list
 
@@ -48,6 +82,8 @@ process construct_dist_matrix {
 }
 
 process reformat_dist_matrix {
+    publishDir 'matrix'
+
     input:
         path matrix_file
 
@@ -94,6 +130,8 @@ process reformat_dist_matrix {
 }
 
 process construct_tree {
+    publishDir 'tree'
+
     input:
         path matrix_file
 
@@ -128,12 +166,16 @@ process construct_tree {
 workflow {
     infiles = channel.fromFilePairs(params.input)
 
-    mash_index(infiles)
-    sketch_paste(mash_index.out.sketches.collect())
+    if (params.doassembly) {
+        assemble_reads(infiles)
+        mash_index_contigs(assemble_reads.out.assemblies)
+        sketch_paste(mash_index_contigs.out.sketches.collect())
+    } else {
+        mash_index_reads(infiles)
+        sketch_paste(mash_index_reads.out.sketches.collect())
+    }
+
     construct_dist_matrix(sketch_paste.out.sketches_file)
     reformat_dist_matrix(construct_dist_matrix.out.matrix)
     construct_tree(reformat_dist_matrix.out.dist_matrix)
-
-    construct_tree.out.image.view()
-    construct_tree.out.tree.view()
 }
